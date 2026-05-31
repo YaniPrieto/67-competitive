@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { api } from '../utils/api';
 import '../styles/Leaderboard.css';
 
 export const Leaderboard = ({ onBack }) => {
@@ -13,8 +14,7 @@ export const Leaderboard = ({ onBack }) => {
   const fetchLeaderboard = async () => {
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:5000/api/leaderboard');
-      const data = await res.json();
+      const data = await api.getLeaderboard();
       setLeaderboard(data);
     } catch (error) {
       console.error('Failed to fetch leaderboard:', error);
