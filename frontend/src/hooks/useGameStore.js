@@ -1,14 +1,50 @@
-import create from 'zustand';
+import { create } from 'zustand';
+
+const PLAYER_STORAGE_KEY = 'gestureBattlePlayer';
+
+const loadStoredPlayer = () => {
+  try {
+    const rawPlayer = window.localStorage.getItem(PLAYER_STORAGE_KEY);
+    return rawPlayer ? JSON.parse(rawPlayer) : null;
+  } catch (error) {
+    return null;
+  }
+};
+
+const saveStoredPlayer = (player) => {
+  try {
+    if (player) {
+      window.localStorage.setItem(PLAYER_STORAGE_KEY, JSON.stringify(player));
+    } else {
+      window.localStorage.removeItem(PLAYER_STORAGE_KEY);
+    }
+  } catch (error) {
+    // Storage can be unavailable in private browsing; keep in-memory state working.
+  }
+};
+
+const storedPlayer = loadStoredPlayer();
 
 export const useGameStore = create((set) => ({
   // Player state
-  player: null,
-  playerId: null,
-  username: null,
-  elo: 1000,
+  player: storedPlayer,
+  playerId: storedPlayer?.id || null,
+  username: storedPlayer?.username || null,
+  elo: storedPlayer?.elo || 1000,
   
-  setPlayer: (player) => set({ player, playerId: player.id, username: player.username, elo: player.elo }),
-  updateElo: (elo) => set({ elo }),
+  setPlayer: (player) => {
+    saveStoredPlayer(player);
+    set({ player, playerId: player.id, username: player.username, elo: player.elo });
+  },
+  updateElo: (elo) => set((state) => {
+    const player = state.player ? { ...state.player, elo } : state.player;
+    saveStoredPlayer(player);
+    return { player, elo };
+  }),
+  logout: () => {
+    saveStoredPlayer(null);
+    set({ player: null, playerId: null, username: null, elo: 1000 });
+  },
 
   // Match state
   matchId: null,
