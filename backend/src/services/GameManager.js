@@ -228,7 +228,9 @@ class GameManager {
 
       if (remaining <= 0) {
         clearInterval(timerInterval);
-        this.endMatch(matchId);
+        this.endMatch(matchId).catch((error) => {
+          console.error(`[startMatchTimer] Failed to end match ${matchId}:`, error);
+        });
       }
     }, 100);
   }
@@ -310,7 +312,7 @@ class GameManager {
    */
   async endMatch(matchId) {
     const match = this.activeMatches.get(matchId);
-    if (!match) return;
+    if (!match || match.state === 'completed') return;
 
     match.state = 'completed';
 
@@ -322,62 +324,31 @@ class GameManager {
       winnerId = match.player2.id;
     }
 
-    const player1 = await Player.getById(match.player1.id);
-    const player2 = await Player.getById(match.player2.id);
+    let player1 = null;
+    let player2 = null;
+    let eloChange1 = 0;
+    let eloChange2 = 0;
 
-    if (!player1 || !player2) {
-      console.error(`[endMatch] Failed to retrieve players: P1=${!!player1}, P2=${!!player2}`);
-      return;
+    try {
+      player1 = await Player.getById(match.player1.id);
+      player2 = await Player.getById(match.player2.id);
+
+      if (player1 && player2) {
+        const eloChanges = this.calculateEloChanges(
+          match.player1.id,
+          match.player2.id,
+          winnerId,
+          player1.elo,
+          player2.elo
+        );
+        eloChange1 = eloChanges.eloChange1;
+        eloChange2 = eloChanges.eloChange2;
+      } else {
+        console.error(`[endMatch] Missing player record: P1=${!!player1}, P2=${!!player2}`);
+      }
+    } catch (error) {
+      console.error(`[endMatch] Failed to load players for ${matchId}:`, error);
     }
-
-    const { eloChange1, eloChange2 } = this.calculateEloChanges(
-      match.player1.id,
-      match.player2.id,
-      winnerId,
-      player1.elo,
-      player2.elo
-    );
-
-    // Update database
-    await Match.updateScore(matchId, match.player1.score, match.player2.score);
-    await Match.updateCombo(matchId, match.player1.combo, match.player2.combo);
-    await Match.complete(matchId, winnerId, eloChange1, eloChange2);
-
-    await Player.updateElo(match.player1.id, eloChange1);
-    await Player.updateElo(match.player2.id, eloChange2);
-
-    await Player.updateStats(match.player1.id, {
-      wins: match.player1.score > match.player2.score ? 1 : 0,
-      losses: match.player1.score < match.player2.score ? 1 : 0,
-      highestCombo: match.player1.combo,
-      totalGestures: match.player1.score
-    });
-
-    await Player.updateStats(match.player2.id, {
-      wins: match.player2.score > match.player1.score ? 1 : 0,
-      losses: match.player2.score < match.player1.score ? 1 : 0,
-      highestCombo: match.player2.combo,
-      totalGestures: match.player2.score
-    });
-
-    await Match.recordHistory(
-      match.player1.id,
-      matchId,
-      match.player1.score,
-      match.player1.combo,
-      match.player1.score,
-      winnerId === match.player1.id,
-      eloChange1
-    );
-    await Match.recordHistory(
-      match.player2.id,
-      matchId,
-      match.player2.score,
-      match.player2.combo,
-      match.player2.score,
-      winnerId === match.player2.id,
-      eloChange2
-    );
 
     // Notify players
     this.broadcastToMatch(matchId, {
@@ -389,17 +360,63 @@ class GameManager {
           score: match.player1.score,
           combo: match.player1.combo,
           eloChange: eloChange1,
-          newElo: player1.elo + eloChange1
+          newElo: (player1?.elo || 1000) + eloChange1
         },
         player2Final: {
           playerId: match.player2.id,
           score: match.player2.score,
           combo: match.player2.combo,
           eloChange: eloChange2,
-          newElo: player2.elo + eloChange2
+          newElo: (player2?.elo || 1000) + eloChange2
         }
       }
     });
+
+    try {
+      await Match.updateScore(matchId, match.player1.score, match.player2.score);
+      await Match.updateCombo(matchId, match.player1.combo, match.player2.combo);
+      await Match.complete(matchId, winnerId, eloChange1, eloChange2);
+
+      if (player1 && player2) {
+        await Player.updateElo(match.player1.id, eloChange1);
+        await Player.updateElo(match.player2.id, eloChange2);
+
+        await Player.updateStats(match.player1.id, {
+          wins: match.player1.score > match.player2.score ? 1 : 0,
+          losses: match.player1.score < match.player2.score ? 1 : 0,
+          highestCombo: match.player1.combo,
+          totalGestures: match.player1.score
+        });
+
+        await Player.updateStats(match.player2.id, {
+          wins: match.player2.score > match.player1.score ? 1 : 0,
+          losses: match.player2.score < match.player1.score ? 1 : 0,
+          highestCombo: match.player2.combo,
+          totalGestures: match.player2.score
+        });
+
+        await Match.recordHistory(
+          match.player1.id,
+          matchId,
+          match.player1.score,
+          match.player1.combo,
+          match.player1.score,
+          winnerId === match.player1.id,
+          eloChange1
+        );
+        await Match.recordHistory(
+          match.player2.id,
+          matchId,
+          match.player2.score,
+          match.player2.combo,
+          match.player2.score,
+          winnerId === match.player2.id,
+          eloChange2
+        );
+      }
+    } catch (error) {
+      console.error(`[endMatch] Failed to persist match ${matchId}:`, error);
+    }
 
     // Clean up
     setTimeout(() => {

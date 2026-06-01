@@ -6,7 +6,7 @@ import '../styles/MainMenu.css';
 
 export const MainMenu = ({ onStartGame, onPlayRanked, onViewLeaderboard }) => {
   const store = useGameStore();
-  const { playerId, elo, updateElo } = store;
+  const { playerId, elo, updateElo, logout } = store;
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [authMode, setAuthMode] = useState('login');
@@ -36,7 +36,13 @@ export const MainMenu = ({ onStartGame, onPlayRanked, onViewLeaderboard }) => {
         }
       } catch (err) {
         if (isCurrent) {
-          console.error('Failed to load profile stats:', err);
+          if (err.message.includes('404')) {
+            logout();
+            setProfileStats(null);
+            setError('Your saved session expired. Please login or register again.');
+          } else {
+            console.error('Failed to load profile stats:', err);
+          }
         }
       } finally {
         if (isCurrent) {
@@ -50,7 +56,7 @@ export const MainMenu = ({ onStartGame, onPlayRanked, onViewLeaderboard }) => {
     return () => {
       isCurrent = false;
     };
-  }, [playerId, elo, updateElo]);
+  }, [playerId, elo, updateElo, logout]);
 
   const handleAnonymousLogin = async () => {
     try {
