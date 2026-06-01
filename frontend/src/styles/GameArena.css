@@ -449,3 +449,162 @@ body {
     opacity: 0;
   }
 }
+
+@media (max-width: 900px) {
+  body {
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+  }
+
+  #root {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .game-arena {
+    min-height: 100vh;
+    height: auto;
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+
+  .arena-container {
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 12px;
+    min-height: 100vh;
+    height: auto;
+    padding: 10px;
+  }
+
+  .webcam-display {
+    width: min(100%, 640px);
+    height: auto;
+    aspect-ratio: 4 / 3;
+    border-radius: 8px;
+  }
+
+  .game-info {
+    width: min(100%, 640px);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .opponent-camera {
+    grid-column: 1 / -1;
+    max-height: 180px;
+  }
+
+  .timer {
+    grid-column: 1 / -1;
+    order: -1;
+    padding: 12px;
+  }
+
+  .player-info {
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  .player-info h3 {
+    font-size: 13px;
+    margin-bottom: 5px;
+  }
+
+  .score {
+    font-size: 34px;
+    margin: 4px 0;
+  }
+
+  .combo,
+  .elo {
+    font-size: 12px;
+  }
+
+  .time-display {
+    font-size: 28px;
+  }
+
+  .countdown {
+    font-size: 38px;
+  }
+
+  .camera-status {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    padding: 9px 10px;
+    font-size: 12px;
+  }
+
+  .gesture-status {
+    left: 10px;
+    top: 64px;
+    max-width: calc(100% - 20px);
+    padding: 7px 9px;
+    font-size: 12px;
+  }
+
+  .hand-raise-pop {
+    min-width: 38px;
+    height: 38px;
+    font-size: 22px;
+  }
+
+  .validation-feedback {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .match-result {
+    padding: 12px;
+  }
+
+  .match-result-panel {
+    min-width: 0;
+    width: min(92%, 340px);
+    padding: 18px;
+  }
+
+  .match-result-title {
+    font-size: 38px;
+  }
+
+  .match-result-score {
+    font-size: 34px;
+  }
+
+  .match-result-elo {
+    min-width: 150px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 430px) {
+  .arena-container {
+    padding: 8px;
+  }
+
+  .game-info {
+    gap: 8px;
+  }
+
+  .opponent-camera {
+    max-height: 140px;
+  }
+
+  .opponent-camera-label {
+    font-size: 11px;
+  }
+
+  .player-info {
+    padding: 10px 8px;
+  }
+
+  .score {
+    font-size: 30px;
+  }
+}
